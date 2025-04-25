@@ -179,9 +179,8 @@ export default function BookingForm({
 
     // Estimate: some EVs can't utilize full power, so use 80-90% efficiency
     const minPrice = Math.round(pricePerKwh * power * hours * 0.8)
-    const maxPrice = Math.round(pricePerKwh * power * hours * 0.9)
 
-    return `₹${minPrice}-${maxPrice}`
+    return `₹${minPrice}`
   }
 
   return (

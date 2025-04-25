@@ -149,22 +149,37 @@ export default function HomePage() {
           </div>
 
           {/* Map Container */}
-          <div className="flex-1 relative z-0">
-            <MapView
-              stations={locationAwareStations}
-              selectedStation={selectedStation}
-              onSelectStation={handleStationSelect}
-            />
-
-            {/* Mobile Station Bar */}
-            {isMobile && (
-              <MobileStationBar
+          <div className="flex-1 relative">
+            {/* Map behind everything */}
+            <div className="absolute inset-0 z-0">
+              <MapView
                 stations={locationAwareStations}
                 selectedStation={selectedStation}
                 onSelectStation={handleStationSelect}
-                isListVisible={mobileListVisible}
-                toggleList={toggleMobileList}
               />
+            </div>
+
+            {/* Mobile Station Bar on top */}
+            {isMobile && (
+              <div className="absolute inset-x-0 bottom-0 z-30">
+                <MobileStationBar
+                  stations={locationAwareStations}
+                  selectedStation={selectedStation}
+                  onSelectStation={handleStationSelect}
+                  isListVisible={mobileListVisible}
+                  toggleList={toggleMobileList}
+                />
+              </div>
+            )}
+
+            {/* Mobile full-screen StationDetails */}
+            {isMobile && selectedStation && !mobileListVisible && (
+              <div className="fixed inset-0 z-40 bg-white overflow-y-auto">
+                <StationDetails
+                  station={selectedStation}
+                  onBack={handleBackToList}
+                />
+              </div>
             )}
           </div>
         </div>
