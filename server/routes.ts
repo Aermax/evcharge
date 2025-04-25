@@ -7,11 +7,21 @@ import { insertBookingSchema } from "@shared/schema";
 import bodyParser from 'body-parser';
 import fetch from 'node-fetch';
 import stationRoutes from "./station";
+import cors from "cors";
+
+
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup auth routes
   setupAuth(app);
+
+  // Before any route definitions
+app.use(cors({
+  origin: "*", // allow all origins; change to specific domain for production
+  credentials: true
+}));
+
 
   // API routes
 
@@ -20,7 +30,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stations", async (req, res) => {
     try {
       const stations = await storage.getAllStations();
-      res.json(stations);
+      res.json(stations.map((station) => ({ ...station, slots: undefined }))); // Exclude slots
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch stations" });
     }
@@ -35,7 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!station) {
         return res.status(404).json({ error: "Station not found" });
       }
-      
+
       res.json(station);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch station" });
@@ -64,17 +74,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         userId: req.user?.id
       });
-      
+
       // Check if port is available
       const port = await storage.getPort(bookingData.portId);
       if (!port) {
         return res.status(404).json({ error: "Port not found" });
       }
-      
+
       if (port.status !== "available") {
         return res.status(400).json({ error: "This port is not available for booking" });
       }
-      
+
       const booking = await storage.createBooking(bookingData);
       res.status(201).json(booking);
     } catch (error) {
@@ -93,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const bookings = await storage.getBookingsByUserId(req.user?.id);
-      
+
       // Enrich bookings with station information
       const enrichedBookings = await Promise.all(
         bookings.map(async (booking) => {
@@ -106,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         })
       );
-      
+
       res.json(enrichedBookings);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch bookings" });
@@ -118,15 +128,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     // if (req.user.role !== "admin") {
     //   return res.status(403).json({ error: "Not authorized" });
     // }
-    
+
     try {
       const users = await storage.getUsersByRole("user");
       // const stationOwners = await storage.getUsersByRole("stationOwner");
-      // const admins = await storage.getUsersByRole("admin");
+      // const admins = await storage.getUsersByRole('admin');
       
       // Return all users
       res.json([...users]);
@@ -140,15 +150,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     // if (req.user.role !== "admin") {
     //   return res.status(403).json({ error: "Not authorized" });
     // }
-    
+
     try {
       // We would need to implement this in the storage interface
       // For now, let's just return an empty array
-      const allBookings = [];
+      const allBookings: any = [];
       for (let i = 1; i <= 4; i++) {
         const stationBookings = await storage.getBookingsByStationId(i);
         allBookings.push(...stationBookings);
@@ -176,16 +186,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     try {
       const { ids } = req.query;
       if (!ids) {
         return res.status(400).json({ error: "Station IDs are required" });
       }
-      
+
       const stationIds = String(ids).split(",").map(id => parseInt(id));
-      
-      const allBookings = [];
+
+      const allBookings: any = [];
       for (const stationId of stationIds) {
         const bookings = await storage.getBookingsByStationId(stationId);
         allBookings.push(...bookings);
@@ -206,19 +216,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const bookingId = parseInt(req.params.id);
       const { status } = req.body;
-      
+
       if (!status || !["pending", "confirmed", "completed", "cancelled"].includes(status)) {
         return res.status(400).json({ error: "Invalid status" });
       }
-      
+
       const booking = await storage.getBooking(bookingId);
       if (!booking) {
         return res.status(404).json({ error: "Booking not found" });
       }
-      
+
       // Only the booking owner can update it
       if (booking.userId !== req.user?.id) {
-        return res.status(403).json({ error: "You don't have permission to update this booking" });
+        return res.status(403).json({ error: "You do not have permission to update this booking" });
       }
       
       const updatedBooking = await storage.updateBookingStatus(bookingId, status);
@@ -232,45 +242,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mock API route to simulate Ollama integration
   app.post('/api/chat', async (req, res) => {
     const { message } = req.body;
-  
+
     if (!message || message.trim() === '') {
       return res.status(400).json({ error: 'Message is required' });
     }
-  
+
     try {
       const ollamaRes = await fetch('http://localhost:11434/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'qwen2.5-coder',
+          model: 'qwen2.5-14b-chat',
           messages: [{ role: 'user', content: message }],
           stream: false // use streaming if you want progressive response
         })
       });
-  
+
       const data = await ollamaRes.json();
-  
+
       // Extract the full message content
       const responseText = data.message?.content;
-  
+
       if (!responseText) {
         return res.status(500).json({ error: 'No response from bot' });
       }
-  
+
       return res.json({ response: responseText });
-  
+
     } catch (error) {
       console.error('[OLLAMA ERROR]', error);
       return res.status(500).json({ error: 'Failed to get response from the bot' });
     }
   });
 
-
-
   const httpServer = createServer(app);
   return httpServer;
+}
 
-} 
 
 
 

@@ -20,6 +20,8 @@ export default function OwnerRegistrationPage() {
   const [stationName, setStationName] = useState("")
   const [stationAddress, setStationAddress] = useState("")
   const [contactNumber, setContactNumber] = useState("")
+  const [latitude, setLatitude] = useState("")
+  const [longitude, setLongitude] = useState("")
   const [email, setEmail] = useState("")
   const [vehicle, setVehicle] = useState("Tata Nexon EV Prime")
   const [portType, setPortType] = useState("AC")
@@ -31,7 +33,14 @@ export default function OwnerRegistrationPage() {
     e.preventDefault()
 
     // Basic form validation
-    if (!stationName || !stationAddress || !contactNumber || !email) {
+    if (
+      !stationName ||
+      !stationAddress ||
+      !contactNumber ||
+      !email ||
+      !latitude ||
+      !longitude
+    ) {
       toast({
         title: "Error",
         description: "Please fill in all required fields.",
@@ -42,8 +51,9 @@ export default function OwnerRegistrationPage() {
 
     const stationData = {
       name: stationName,
-      location: stationAddress,
-      slots: Number(slots) || 0 // Convert to number
+      address: stationAddress,
+      latitude: parseFloat(latitude),
+      longitude: parseFloat(longitude)
     }
 
     try {
@@ -70,6 +80,8 @@ export default function OwnerRegistrationPage() {
       setStationName("")
       setStationAddress("")
       setContactNumber("")
+      setLatitude("")
+      setLongitude("")
       setEmail("")
     } catch (err: any) {
       console.error(err)
@@ -108,6 +120,28 @@ export default function OwnerRegistrationPage() {
               id="stationAddress"
               value={stationAddress}
               onChange={(e) => setStationAddress(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Latitude */}
+          <div>
+            <Label htmlFor="latitude">Latitude</Label>
+            <Input
+              id="latitude"
+              value={latitude}
+              onChange={(e) => setLatitude(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Longitude */}
+          <div>
+            <Label htmlFor="longitude">Longitude</Label>
+            <Input
+              id="longitude"
+              value={longitude}
+              onChange={(e) => setLongitude(e.target.value)}
               required
             />
           </div>
